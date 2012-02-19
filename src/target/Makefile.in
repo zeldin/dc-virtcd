@@ -1,0 +1,32 @@
+AS = @DCAS@
+LD = @DCLD@
+CC = @DCCC@
+AR = @DCAR@
+CFLAGS = @DCCFLAGS@
+
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+all clean :
+	cd common && make $@
+	cd network && make $@
+	cd skel && make $@
+	cd launcher && make $@
+	make local-$@
+
+local-all :
+
+local-clean :
+
+install :
+
+Makefile common/Makefile network/Makefile skel/Makefile launcher/Makefile: Makefile.in common/Makefile.in network/Makefile.in skel/Makefile.in launcher/Makefile.in config.status
+	./config.status
+
+config.status : configure
+	./config.status --recheck
+
+configure : configure.ac
+	cd $(srcdir) && autoconf
+

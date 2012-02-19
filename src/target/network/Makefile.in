@@ -1,0 +1,33 @@
+AS = @DCAS@
+LD = @DCLD@
+CC = @DCCC@
+AR = @DCAR@
+CFLAGS = @DCCFLAGS@ -I$(top_srcdir)/common
+
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+OBJS = pci.o ether.o arp.o ip.o icmp.o udp.o
+
+LIBTARGET = libnetwork.a
+
+all : $(LIBTARGET)
+
+clean :
+	-rm -f $(LIBTARGET) $(OBJS)
+
+$(LIBTARGET) : $(OBJS)
+	$(AR) rc $@ $(OBJS)
+
+pci.o : pci.c pci.h $(top_srcdir)/common/util.h
+
+ether.o : ether.c ether.h arp.h ip.h pci.h $(top_srcdir)/common/util.h
+
+ip.o : ip.c ip.h ether.h icmp.h udp.h
+
+arp.o : arp.c arp.h ether.h
+
+icmp.o : icmp.c icmp.h ip.h
+
+udp.o : udp.c udp.h $(top_srcdir)/common/util.h $(top_srcdir)/common/proto.h

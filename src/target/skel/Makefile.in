@@ -1,0 +1,32 @@
+AS = @DCAS@
+LD = @DCLD@
+CC = @DCCC@
+AR = @DCAR@
+OBJCOPY = @DCOBJCOPY@
+CFLAGS = @DCCFLAGS@ -I$(top_srcdir)/common -I$(top_srcdir)/network
+
+top_srcdir=@top_srcdir@
+top_builddir=@top_builddir@
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+SUBBASEADDR=0x8c008300
+
+OBJS = sub.o schandler.o
+LIBS = $(top_builddir)/network/libnetwork.a $(top_builddir)/common/libcommon.a
+
+all : sub.bin
+
+sub.bin : sub.elf
+	$(OBJCOPY) -O binary -R .stack $^ $@
+
+sub.elf : $(OBJS) $(LIBS)
+	$(CC) -o $@ -Wl,--oformat,elf32-shl,-Ttext=$(SUBBASEADDR) -nostartfiles -nostdlib $(OBJS) $(LIBS) -lgcc
+
+clean :
+	-rm -f sub.bin $(OBJS)
+
+sub.o : sub.s
+
+schandler.o : schandler.c $(top_srcdir)/network/pci.h $(top_srcdir)/network/ether.h $(top_srcdir)/common/proto.h $(top_srcdir)/common/util.h
+

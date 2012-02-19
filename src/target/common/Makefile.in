@@ -1,0 +1,26 @@
+AS = @DCAS@
+LD = @DCLD@
+CC = @DCCC@
+AR = @DCAR@
+CFLAGS = @DCCFLAGS@
+
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+OBJS = proto.o util1.o
+
+LIBTARGET = libcommon.a
+
+all : $(LIBTARGET)
+
+clean :
+	-rm -f $(LIBTARGET) $(OBJS)
+
+$(LIBTARGET) : $(OBJS)
+	$(AR) rc $@ $(OBJS)
+
+proto.o : proto.c proto.h util.h
+
+util1.o : util1.c util.h 
+
