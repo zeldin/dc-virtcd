@@ -1,10 +1,19 @@
+CC = @CC@
+AR = @AR@
+CFLAGS = @CFLAGS@
+
 top_srcdir=@top_srcdir@
 srcdir=@srcdir@
 VPATH=@srcdir@
 
-all clean install :
-	cd target && make $@
-	cd host && make $@
+all clean :
+	make local-$@
+
+local-all :
+
+local-clean :
+
+install :
 
 Makefile: Makefile.in config.status
 	./config.status
