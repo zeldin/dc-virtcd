@@ -7,6 +7,8 @@ srcdir=@srcdir@
 VPATH=@srcdir@
 
 all clean :
+	cd network && make $@
+	cd cmdline && make $@
 	make local-$@
 
 local-all :
@@ -15,12 +17,11 @@ local-clean :
 
 install :
 
-Makefile: Makefile.in config.status
+Makefile network/Makefile cmdline/Makefile: Makefile.in network/Makefile.in cmdline/Makefile.in config.status
 	./config.status
 
 config.status : configure
 	./config.status --recheck
 
-configure : configure.ac
-	cd $(srcdir) && autoconf
-
+configure config.h.in : configure.ac
+	cd $(srcdir) && autoheader && autoconf

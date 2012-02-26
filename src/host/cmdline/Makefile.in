@@ -1,0 +1,24 @@
+CC = @CC@
+AR = @AR@
+CFLAGS = @CFLAGS@ -I$(top_srcdir)/network
+
+top_srcdir=@top_srcdir@
+top_builddir=@top_builddir@
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+OBJS = main.o
+LIBS = $(top_builddir)/network/libnetwork.a
+
+PROGTARGET = dc-virtcd-cmdline
+
+all : $(PROGTARGET)
+
+clean :
+	-rm -f $(PROGTARGET) $(OBJS)
+
+$(PROGTARGET) : $(OBJS) $(LIBS)
+	$(CC) -o $@ $(OBJS) $(LIBS)
+
+main.o : main.c $(top_srcdir)/network/serverport.h
+

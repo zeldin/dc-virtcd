@@ -1,0 +1,22 @@
+CC = @CC@
+AR = @AR@
+CFLAGS = @CFLAGS@ -I@top_builddir@
+
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+OBJS = serverport.o
+
+LIBTARGET = libnetwork.a
+
+all : $(LIBTARGET)
+
+clean :
+	-rm -f $(LIBTARGET) $(OBJS)
+
+$(LIBTARGET) : $(OBJS)
+	$(AR) rc $@ $(OBJS)
+
+serverport.o : serverport.c serverport.h @top_builddir@/config.h
+

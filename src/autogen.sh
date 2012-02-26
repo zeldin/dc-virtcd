@@ -2,5 +2,5 @@
 set -e
 autoconf
 ( cd target && autoconf )
-( cd host && autoconf )
+( cd host && autoheader && autoconf )
 
