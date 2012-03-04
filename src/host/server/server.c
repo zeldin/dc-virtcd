@@ -39,6 +39,38 @@ static int handle_packet(void *ctx, clientcontext client, const int32_t *pkt, in
   for (i=0; i<cnt; i++)
     printf(" %d", pkt[i]);
   printf("\n");
+
+  if (cnt > 0) {
+    uint16_t cmd = (uint16_t)pkt[0];
+    if (cmd < 48) {
+      /* gdrom command */
+      switch(cmd) {
+	/* FIXME */
+      }
+    } else if(cmd >= 990) {
+      /* monitor command */
+      switch(cmd-990) {
+      case 0:
+      case 1:
+	return 0;
+      case 7:
+	/* FIXME */
+	break;
+      case 8:
+	/* FIXME */
+	break;
+      case 9:
+	return 0;
+      }
+    } else if(cmd >= 800 && cmd < 816) {
+      /* unimplemented syscall */
+      return -2;
+    } else if(cmd >= 500 && cmd < 700) {
+      /* status feedback */
+      return -2;
+    }
+  }
+  
   return -1;
 }
 

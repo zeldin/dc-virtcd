@@ -208,7 +208,18 @@ void serverport_run_once(serverport s)
   for (i=2; i<size; i++)
     pkt[i] = SWAP32(pkt[i]);
 #endif
-  rc = (*s->funcs->handle_packet)(s->ctx, c, pkt, size);
+  rc = (*s->funcs->handle_packet)(s->ctx, c, pkt+2, size-2);
+  if (rc != -1) {
+#ifdef WORDS_BIGENDIAN
+    pkt[2] = SWAP32(rc);
+#else
+    pkt[2] = rc;
+#endif
+    size = sendto(s->sockfd, pkt, 3*sizeof(int32_t), 0,
+		  (struct sockaddr *)&src_addr, addrlen);
+    if (size<0)
+      msglog_perror(s->logger, "sendto");
+  }
 }
 
 void serverport_run(serverport s)
