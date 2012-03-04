@@ -1,4 +1,4 @@
-AC_INIT(Makefile.in)
+AC_INIT(common/msglog.c)
 AC_CONFIG_HEADER(config.h)
 
 AC_CHECK_TOOL(AR, ar)
