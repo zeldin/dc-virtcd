@@ -1,0 +1,23 @@
+CC = @CC@
+AR = @AR@
+CFLAGS = @CFLAGS@ -I@top_builddir@ -I@top_srcdir@/common -I@top_srcdir@/network
+
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+OBJS = server.o
+
+LIBTARGET = libserver.a
+
+all : $(LIBTARGET)
+
+clean :
+	-rm -f $(LIBTARGET) $(OBJS)
+
+$(LIBTARGET) : $(OBJS)
+	$(AR) rc $@ $(OBJS)
+
+server.o : server.c server.h @top_builddir@/config.h @top_srcdir@/common/msglog.h @top_srcdir@/network/serverport.h
+
+

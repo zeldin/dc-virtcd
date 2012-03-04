@@ -9,6 +9,7 @@ VPATH=@srcdir@
 all clean :
 	cd common && make $@
 	cd network && make $@
+	cd server && make $@
 	cd cmdline && make $@
 	make local-$@
 
@@ -18,7 +19,7 @@ local-clean :
 
 install :
 
-Makefile common/Makefile network/Makefile cmdline/Makefile: Makefile.in common/Makefile.in network/Makefile.in cmdline/Makefile.in config.status
+Makefile common/Makefile network/Makefile server/Makefile cmdline/Makefile: Makefile.in common/Makefile.in network/Makefile.in server/Makefile.in cmdline/Makefile.in config.status
 	./config.status
 
 config.status : configure
