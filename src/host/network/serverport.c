@@ -32,10 +32,6 @@
 #endif
 #endif
 
-struct clientcontext_s {
-  struct in_addr client_addr;
-};
-
 typedef clientcontext level4_index[256];
 typedef level4_index *level3_index[256];
 typedef level3_index *level2_index[256];
@@ -43,23 +39,24 @@ typedef level2_index *level1_index[256];
 
 struct serverport_s {
   msglogger logger;
+  serverfuncs funcs;
+  void *ctx;
   int sockfd;
   level1_index clients;
 };
 
-static void clientcontext_delete(clientcontext c)
+static void clientcontext_delete(serverport s, clientcontext c)
 {
-  free(c);
+  (*s->funcs->clientcontext_delete)(s->ctx, c);
 }
 
 static clientcontext clientcontext_new(serverport s, struct in_addr in)
 {
-  clientcontext c = calloc(1, sizeof(struct clientcontext_s));
+  clientcontext c = (*s->funcs->clientcontext_new)(s->ctx);
   if (c) {
-    c->client_addr = in;
+    ((struct clientcontext_base_s *)c)->client_addr = in.s_addr;
     return c;
-  } else
-    msglog_oomerror(s->logger);
+  }
   return NULL;
 }
 
@@ -123,12 +120,14 @@ static clientcontext serverport_get_clientcontext_for_address(serverport s,
   return c;
 }
 
-serverport serverport_new(msglogger logger)
+serverport serverport_new(msglogger logger, serverfuncs funcs, void *ctx)
 {
   serverport s = calloc(1, sizeof(struct serverport_s));
   if (s) {
     int i;
     s->logger = logger;
+    s->funcs = funcs;
+    s->ctx = ctx;
     for (i=0; i<256; i++)
       s->clients[i] = NULL;
     if ((s->sockfd = socket(AF_INET, SOCK_DGRAM, 0)) >= 0) {
@@ -167,7 +166,7 @@ void serverport_delete(serverport s)
 		for (l=0; l<256; l++) {
 		  clientcontext c = (*l4)[l];
 		  if (c != NULL)
-		    clientcontext_delete(c);
+		    clientcontext_delete(s, c);
 		}
 		free(l4);
 	      }
@@ -204,14 +203,12 @@ void serverport_run_once(serverport s)
   clientcontext c = serverport_get_clientcontext_for_address(s, src_addr.sin_addr);
   if (c == NULL)
     return;
-  int i;
+  int i, rc;
 #ifdef WORDS_BIGENDIAN
   for (i=2; i<size; i++)
     pkt[i] = SWAP32(pkt[i]);
 #endif
-  for (i=0; i<size; i++)
-    printf(" %d", pkt[i]);
-  printf("\n");
+  rc = (*s->funcs->handle_packet)(s->ctx, c, pkt, size);
 }
 
 void serverport_run(serverport s)
