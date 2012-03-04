@@ -13,6 +13,7 @@
 #include <byteswap.h>
 #endif
 
+#include "msglog.h"
 #include "serverport.h"
 
 #define CLIENT_PORT 4781
@@ -41,6 +42,7 @@ typedef level3_index *level2_index[256];
 typedef level2_index *level1_index[256];
 
 struct serverport_s {
+  msglogger logger;
   int sockfd;
   level1_index clients;
 };
@@ -50,14 +52,14 @@ static void clientcontext_delete(clientcontext c)
   free(c);
 }
 
-static clientcontext clientcontext_new(struct in_addr in)
+static clientcontext clientcontext_new(serverport s, struct in_addr in)
 {
   clientcontext c = calloc(1, sizeof(struct clientcontext_s));
   if (c) {
     c->client_addr = in;
     return c;
   } else
-    fprintf(stderr, "out of memory\n");
+    msglog_oomerror(s->logger);
   return NULL;
 }
 
@@ -77,10 +79,10 @@ static clientcontext serverport_get_clientcontext_for_address(serverport s,
   l2 = s->clients[a1];
   if (l2 == NULL) {
     int i;
-    printf("Creating new level 2 index for prefix %d\n", a1);
+    msglog_debug(s->logger, "Creating new level 2 index for prefix %d", a1);
     l2 = calloc(1, sizeof(level2_index));
     if (l2 == NULL) {
-      fprintf(stderr, "out of memory\n");
+      msglog_oomerror(s->logger);
       return NULL;
     }
     for (i=0; i<256; i++)
@@ -90,10 +92,10 @@ static clientcontext serverport_get_clientcontext_for_address(serverport s,
   l3 = (*l2)[a2];
   if (l3 == NULL) {
     int i;
-    printf("Creating new level 3 index for prefix %d.%d\n", a1, a2);
+    msglog_debug(s->logger, "Creating new level 3 index for prefix %d.%d", a1, a2);
     l3 = calloc(1, sizeof(level3_index));
     if (l3 == NULL) {
-      fprintf(stderr, "out of memory\n");
+      msglog_oomerror(s->logger);
       return NULL;
     }
     for (i=0; i<256; i++)
@@ -103,10 +105,10 @@ static clientcontext serverport_get_clientcontext_for_address(serverport s,
   l4 = (*l3)[a3];
   if (l4 == NULL) {
     int i;
-    printf("Creating new level 4 index for prefix %d.%d.%d\n", a1, a2, a3);
+    msglog_debug(s->logger, "Creating new level 4 index for prefix %d.%d.%d", a1, a2, a3);
     l4 = calloc(1, sizeof(level4_index));
     if (l4 == NULL) {
-      fprintf(stderr, "out of memory\n");
+      msglog_oomerror(s->logger);
       return NULL;
     }
     for (i=0; i<256; i++)
@@ -115,17 +117,18 @@ static clientcontext serverport_get_clientcontext_for_address(serverport s,
   }
   c = (*l4)[a4];
   if (c == NULL) {
-    printf("Creating new client context for %d.%d.%d.%d\n", a1, a2, a3, a4);
-    (*l4)[a4] = c = clientcontext_new(in);
+    msglog_debug(s->logger, "Creating new client context for %d.%d.%d.%d", a1, a2, a3, a4);
+    (*l4)[a4] = c = clientcontext_new(s, in);
   }
   return c;
 }
 
-serverport serverport_new(void)
+serverport serverport_new(msglogger logger)
 {
   serverport s = calloc(1, sizeof(struct serverport_s));
   if (s) {
     int i;
+    s->logger = logger;
     for (i=0; i<256; i++)
       s->clients[i] = NULL;
     if ((s->sockfd = socket(AF_INET, SOCK_DGRAM, 0)) >= 0) {
@@ -137,12 +140,12 @@ serverport serverport_new(void)
       if (bind(s->sockfd, (struct sockaddr *)&addr, sizeof(addr)) >= 0) {
 	return s;
       } else
-	perror("bind");
+	msglog_perror(logger, "bind");
     } else
-      perror("socket");
+      msglog_perror(logger, "socket");
     serverport_delete(s);
   } else
-    fprintf(stderr, "out of memory\n");
+    msglog_oomerror(logger);
   return NULL;
 }
 
@@ -188,16 +191,16 @@ void serverport_run_once(serverport s)
   size = recvfrom(s->sockfd, pkt, sizeof(pkt), 0,
 		  (struct sockaddr *)&src_addr, &addrlen);
   if (size<0) {
-    perror("recvfrom");
+    msglog_perror(s->logger, "recvfrom");
     return;
   }
   if (size<12 || size>MAX_PKT*4 || (size&3)!=0) {
-    fprintf(stderr, "Invalid packet length\n");
+    msglog_warning(s->logger, "Invalid packet length");
     return;
   }
   size /= sizeof(int32_t);
-  printf("Got a message from %s:%d, %d values\n",
-	 inet_ntoa(src_addr.sin_addr), ntohs(src_addr.sin_port), size);
+  msglog_debug(s->logger, "Got a message from %s:%d, %d values",
+	       inet_ntoa(src_addr.sin_addr), ntohs(src_addr.sin_port), size);
   clientcontext c = serverport_get_clientcontext_for_address(s, src_addr.sin_addr);
   if (c == NULL)
     return;

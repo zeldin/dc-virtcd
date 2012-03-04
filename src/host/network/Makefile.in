@@ -1,6 +1,6 @@
 CC = @CC@
 AR = @AR@
-CFLAGS = @CFLAGS@ -I@top_builddir@
+CFLAGS = @CFLAGS@ -I@top_builddir@ -I@top_srcdir@/common
 
 top_srcdir=@top_srcdir@
 srcdir=@srcdir@
@@ -18,5 +18,5 @@ clean :
 $(LIBTARGET) : $(OBJS)
 	$(AR) rc $@ $(OBJS)
 
-serverport.o : serverport.c serverport.h @top_builddir@/config.h
+serverport.o : serverport.c serverport.h @top_builddir@/config.h @top_srcdir@/common/msglog.h
 
