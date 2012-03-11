@@ -7,7 +7,7 @@ top_builddir=@top_builddir@
 srcdir=@srcdir@
 VPATH=@srcdir@
 
-OBJS = datafile.o
+OBJS = datafile.o isofile.o
 
 LIBTARGET = libdatasource.a
 
@@ -19,5 +19,8 @@ clean :
 $(LIBTARGET) : $(OBJS)
 	$(AR) rc $@ $(OBJS)
 
-datafile.o : datafile.c datafile.h @top_builddir@/config.h @top_srcdir@/common/msglog.h
+datafile.o : datafile.c datafile.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h
+
+isofile.o : isofile.c isofile.h datafile.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h
+
 

@@ -31,6 +31,7 @@ datafile datafile_new_from_filename(msglogger logger, const char *filename)
     d->logger = logger;
     d->fd = open(filename, O_RDONLY);
     if (d->fd >= 0){
+      msglog_debug(logger, "Opened file %s", filename);
       return d;
     } else
       msglog_perror(logger, filename);
