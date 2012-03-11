@@ -10,6 +10,7 @@ AC_CHECK_DECLS([__builtin_bswap32,bswap_32],,,[[
 #include <byteswap.h>
 #endif
 ]])
+AC_CHECK_FUNCS(pread)
 
 AC_OUTPUT(Makefile common/Makefile network/Makefile server/Makefile
           datasource/Makefile cmdline/Makefile)
