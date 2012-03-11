@@ -11,4 +11,5 @@ AC_CHECK_DECLS([__builtin_bswap32,bswap_32],,,[[
 #endif
 ]])
 
-AC_OUTPUT(Makefile common/Makefile network/Makefile server/Makefile cmdline/Makefile)
+AC_OUTPUT(Makefile common/Makefile network/Makefile server/Makefile
+          datasource/Makefile cmdline/Makefile)

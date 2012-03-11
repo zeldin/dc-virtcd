@@ -10,6 +10,7 @@ all clean :
 	cd common && make $@
 	cd network && make $@
 	cd server && make $@
+	cd datasource && make $@
 	cd cmdline && make $@
 	make local-$@
 
@@ -19,7 +20,13 @@ local-clean :
 
 install :
 
-Makefile common/Makefile network/Makefile server/Makefile cmdline/Makefile: Makefile.in common/Makefile.in network/Makefile.in server/Makefile.in cmdline/Makefile.in config.status
+MAKEFILES_OUT = Makefile common/Makefile network/Makefile \
+                server/Makefile datasource/Makefile cmdline/Makefile
+
+MAKEFILES_IN = Makefile.in common/Makefile.in network/Makefile.in \
+               server/Makefile.in datasource/Makefile.in cmdline/Makefile.in
+
+$(MAKEFILES_OUT): $(MAKEFILES_IN) config.status
 	./config.status
 
 config.status : configure
