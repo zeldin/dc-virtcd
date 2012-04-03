@@ -46,7 +46,7 @@ static bool isofile_find_start_sector(isofile i)
   if (sec >= ROOT_DIRECTORY_HORIZON)
     return false;
   msglog_debug(i->logger, "Root directory is at %d", sec);
-  sec = ((((((buf1[5]<<8)|buf1[4])<<8)|buf1[3])<<8)|buf1[2])-sec;
+  sec = ((((((buf1[5]<<8)|buf1[4])<<8)|buf1[3])<<8)|buf1[2])+150-sec;
   msglog_debug(i->logger, "Session offset is %d", sec);
   i->start_sector = sec;
   return true;
