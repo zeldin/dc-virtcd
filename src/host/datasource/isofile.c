@@ -40,7 +40,8 @@ static bool isofile_find_start_sector(isofile i)
   while (++sec < ROOT_DIRECTORY_HORIZON) {
     if (!datafile_read(i->data, sec<<11, 0x22, buf2))
       return false;
-    if (!memcmp(buf1, buf2, 0x22))
+    if (!memcmp(buf1, buf2, 0x12) &&
+	!memcmp(buf1+0x19, buf2+0x19, 0x9))
       break;
   }
   if (sec >= ROOT_DIRECTORY_HORIZON)
