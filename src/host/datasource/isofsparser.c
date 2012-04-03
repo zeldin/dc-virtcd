@@ -9,7 +9,7 @@
 #include "msglog.h"
 #include "toc.h"
 #include "datafile.h"
-#include "isofile.h"
+#include "datasource.h"
 #include "isofsparser.h"
 
 /* Expect to find root directory within this many sectors from the start */
@@ -17,7 +17,7 @@
 
 struct isofs_s {
   msglogger logger;
-  isofile file;
+  datasource ds;
   uint32_t datatrack_lba, root_lba, root_length;
   uint8_t buffer[2048];
 };
@@ -42,7 +42,7 @@ static bool isofs_find_datatrack(isofs i)
   int session;
   for (session = 1; session >= 0; --session) {
     dc_toc toc;
-    if (!isofile_get_toc(i->file, session, &toc))
+    if (!datasource_get_toc(i->ds, session, &toc))
       continue;
     int trk, first, last;
     first = GET_DC_TOC_TRACK(toc.first);
@@ -66,7 +66,7 @@ static bool isofs_find_root_directory(isofs i)
   uint32_t sec;
   uint8_t *buf = i->buffer;
   for (sec = 16; sec < ROOT_DIRECTORY_HORIZON; sec++) {
-    if (!isofile_read_sector(i->file, i->datatrack_lba+sec, buf))
+    if (!datasource_read_sector(i->ds, i->datatrack_lba+sec, buf))
       return false;
     if (!memcmp(buf, "\001CD001", 6))
       break;
@@ -93,7 +93,7 @@ static bool isofs_find_entry(isofs i, const char *entryname,
   const uint8_t *p;
   dirflag = (dirflag? 2 : 0);
   while(dirlen > 0) {
-    if (!isofile_read_sector(i->file, dirsec, buf))
+    if (!datasource_read_sector(i->ds, dirsec, buf))
       return false;
     if (dirlen > 2048) {
       len = 2048;
@@ -136,12 +136,12 @@ void isofs_delete(isofs i)
   }
 }
 
-isofs isofs_new(msglogger logger, isofile file)
+isofs isofs_new(msglogger logger, datasource ds)
 {
   isofs i = calloc(1, sizeof(struct isofs_s));
   if (i) {
     i->logger = logger;
-    i->file = file;
+    i->ds = ds;
     if (isofs_find_datatrack(i)) {
       if (isofs_find_root_directory(i)) {
 	return i;
