@@ -7,7 +7,7 @@ top_builddir=@top_builddir@
 srcdir=@srcdir@
 VPATH=@srcdir@
 
-OBJS = datafile.o isofile.o isofsparser.o
+OBJS = datafile.o isofile.o isofsparser.o datasource.o
 
 LIBTARGET = libdatasource.a
 
@@ -25,4 +25,4 @@ isofile.o : isofile.c isofile.h datafile.h $(top_builddir)/config.h $(top_srcdir
 
 isofsparser.o : isofsparser.c isofsparser.h isofile.h datafile.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h
 
-
+datasource.o : datasource.c datasource.h isofile.h datafile.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h
