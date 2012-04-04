@@ -129,6 +129,11 @@ bool isofs_find_file(isofs i, const char *filename,
 			  i->root_lba, i->root_length, 0);
 }
 
+uint32_t isofs_get_bootsector(isofs i, uint32_t n)
+{
+  return i->datatrack_lba + n;
+}
+
 void isofs_delete(isofs i)
 {
   if (i) {
