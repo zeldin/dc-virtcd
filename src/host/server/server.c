@@ -3,23 +3,33 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "msglog.h"
+#include "toc.h"
+#include "datasource.h"
+#include "jukebox.h"
 #include "server.h"
 #include "serverport.h"
 
 struct clientcontext_s {
   struct clientcontext_base_s base;
+  datasource dsource;
 };
 
 struct server_s {
   msglogger logger;
+  jukebox jbox;
   serverport port;
 };
 
 static void clientcontext_delete(void *ctx, clientcontext client)
 {
-  free(client);
+  if (client) {
+    if (client->dsource)
+      datasource_unrealize(client->dsource);
+    free(client);
+  }
 }
 
 static clientcontext clientcontext_new(void *ctx)
@@ -33,8 +43,32 @@ static clientcontext clientcontext_new(void *ctx)
   return NULL;
 }
 
+static bool clientcontext_set_datasource(clientcontext client, datasource ds)
+{
+  if (ds == client->dsource)
+    return true;
+  if (client->dsource) {
+    datasource_unrealize(client->dsource);
+    client->dsource = NULL;
+  }
+  if (ds && !datasource_realize(ds))
+    return false;
+  client->dsource = ds;
+  return true;
+}
+
+static int select_binary(server s, clientcontext client, uint32_t id)
+{
+  datasource ds = jukebox_get_datasource(s->jbox, id);
+  if (!clientcontext_set_datasource(client, ds) ||
+      ds == NULL)
+    return -2;
+  return 17; /* FIXME */
+}
+
 static int handle_packet(void *ctx, clientcontext client, const int32_t *pkt, int cnt)
 {
+  server s = ctx;
   int i;
   for (i=0; i<cnt; i++)
     printf(" %d", pkt[i]);
@@ -57,8 +91,7 @@ static int handle_packet(void *ctx, clientcontext client, const int32_t *pkt, in
 	/* FIXME */
 	break;
       case 8:
-	/* FIXME */
-	break;
+	return select_binary(s, client, (cnt > 1? (uint32_t)pkt[1] : 0));
       case 9:
 	return 0;
       }
@@ -88,11 +121,12 @@ void server_delete(server s)
   }
 }
 
-server server_new(msglogger logger)
+server server_new(msglogger logger, jukebox jbox)
 {
   server s = calloc(1, sizeof(struct server_s));
   if (s) {
     s->logger = logger;
+    s->jbox = jbox;
     if ((s->port = serverport_new(logger, &funcs, s)) != NULL) {
       return s;
     }

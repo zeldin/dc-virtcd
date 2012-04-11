@@ -1,8 +1,10 @@
 CC = @CC@
 AR = @AR@
-CFLAGS = @CFLAGS@ -I@top_builddir@ -I@top_srcdir@/common -I@top_srcdir@/network
+CFLAGS = @CFLAGS@ -I$(top_builddir) -I$(top_srcdir)/common \
+	-I$(top_srcdir)/network -I$(top_srcdir)/datasource
 
 top_srcdir=@top_srcdir@
+top_builddir=@top_builddir@
 srcdir=@srcdir@
 VPATH=@srcdir@
 
@@ -18,6 +20,6 @@ clean :
 $(LIBTARGET) : $(OBJS)
 	$(AR) rc $@ $(OBJS)
 
-server.o : server.c server.h @top_builddir@/config.h @top_srcdir@/common/msglog.h @top_srcdir@/network/serverport.h
+server.o : server.c server.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h $(top_srcdir)/network/serverport.h $(top_srcdir)/datasource/datasource.h $(top_srcdir)/datasource/jukebox.h
 
 

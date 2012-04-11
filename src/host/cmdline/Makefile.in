@@ -1,6 +1,6 @@
 CC = @CC@
 AR = @AR@
-CFLAGS = @CFLAGS@ -I$(top_srcdir)/common -I$(top_srcdir)/server
+CFLAGS = @CFLAGS@ -I$(top_srcdir)/common -I$(top_srcdir)/server -I$(top_srcdir)/datasource
 
 top_srcdir=@top_srcdir@
 top_builddir=@top_builddir@
@@ -8,7 +8,7 @@ srcdir=@srcdir@
 VPATH=@srcdir@
 
 OBJS = main.o
-LIBS = $(top_builddir)/server/libserver.a $(top_builddir)/network/libnetwork.a $(top_builddir)/common/libcommon.a
+LIBS = $(top_builddir)/server/libserver.a $(top_builddir)/network/libnetwork.a $(top_builddir)/datasource/libdatasource.a $(top_builddir)/common/libcommon.a
 
 PROGTARGET = dc-virtcd-cmdline
 
