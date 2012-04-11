@@ -203,7 +203,8 @@ void serverport_run_once(serverport s)
   clientcontext c = serverport_get_clientcontext_for_address(s, src_addr.sin_addr);
   if (c == NULL)
     return;
-  int i, rc;
+  int i;
+  int32_t rc;
 #ifdef WORDS_BIGENDIAN
   for (i=2; i<size; i++)
     pkt[i] = SWAP32(pkt[i]);

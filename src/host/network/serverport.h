@@ -6,7 +6,7 @@ struct clientcontext_base_s {
 typedef struct serverfuncs_s {
   clientcontext (*clientcontext_new)(void *ctx);
   void (*clientcontext_delete)(void *ctx, clientcontext client);
-  int (*handle_packet)(void *ctx, clientcontext client, const int32_t *pkt, int cnt);
+  int32_t (*handle_packet)(void *ctx, clientcontext client, const int32_t *pkt, int cnt);
 } *serverfuncs;
 extern serverport serverport_new(msglogger logger, serverfuncs funcs, void *ctx);
 extern void serverport_delete(serverport s);

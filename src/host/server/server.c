@@ -57,7 +57,7 @@ static bool clientcontext_set_datasource(clientcontext client, datasource ds)
   return true;
 }
 
-static int select_binary(server s, clientcontext client, uint32_t id)
+static int32_t select_binary(server s, clientcontext client, uint32_t id)
 {
   datasource ds = jukebox_get_datasource(s->jbox, id);
   if (!clientcontext_set_datasource(client, ds) ||
@@ -66,7 +66,7 @@ static int select_binary(server s, clientcontext client, uint32_t id)
   return 17; /* FIXME */
 }
 
-static int handle_packet(void *ctx, clientcontext client, const int32_t *pkt, int cnt)
+static int32_t handle_packet(void *ctx, clientcontext client, const int32_t *pkt, int cnt)
 {
   server s = ctx;
   int i;
