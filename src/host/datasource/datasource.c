@@ -31,6 +31,7 @@ struct realization_s {
   bool (*read_sector)(realization r, uint32_t sector, uint8_t *buffer);
   bool (*get_toc)(realization r, int session, dc_toc *toc);
   bool (*get_ipbin)(realization r, uint32_t n, uint8_t *buffer);
+  int32_t (*get_1st_read_size)(realization r);
 };
 
 static bool realization_read_sector_from_isofile(realization r,
@@ -50,6 +51,11 @@ static bool realization_get_ipbin_from_datasource(realization r,
 						  uint32_t n, uint8_t *buffer)
 {
   return r->read_sector(r, r->bootsector0+n, buffer);
+}
+
+static int32_t realization_get_1st_read_size_generic(realization r)
+{
+  return r->bootfile_length;
 }
 
 static void realization_delete(realization r)
@@ -87,6 +93,7 @@ static bool realization_setup_fs(realization r, datasource ds, isofs fs)
     msglog_error(r->logger, "Boot file \"%s\" not found!", bootname);
     return false;
   }
+  r->get_1st_read_size = realization_get_1st_read_size_generic;
   msglog_debug(r->logger, "Found file at LBA %lu, size is %lu bytes",
 	       (unsigned long)r->bootfile_sector,
 	       (unsigned long)r->bootfile_length);
@@ -125,6 +132,8 @@ static realization realization_new(msglogger logger)
     r->iso = NULL;
     r->read_sector = NULL;
     r->get_toc = NULL;
+    r->get_ipbin = NULL;
+    r->get_1st_read_size = NULL;
     return r;
   } else
     msglog_oomerror(logger);
@@ -187,6 +196,16 @@ extern bool datasource_get_ipbin(datasource ds, uint32_t n, uint8_t *buffer)
   else {
     msglog_error(ds->logger, "Get IP.BIN on unrealized datasource");
     return false;
+  }
+}
+
+extern int32_t datasource_get_1st_read_size(datasource ds)
+{
+  if (ds->realization)
+    return ds->realization->get_1st_read_size(ds->realization);
+  else {
+    msglog_error(ds->logger, "Get 1ST_READ.BIN size on unrealized datasource");
+    return -1;
   }
 }
 

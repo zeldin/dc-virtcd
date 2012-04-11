@@ -59,11 +59,13 @@ static bool clientcontext_set_datasource(clientcontext client, datasource ds)
 
 static int32_t select_binary(server s, clientcontext client, uint32_t id)
 {
+  int32_t r;
   datasource ds = jukebox_get_datasource(s->jbox, id);
   if (!clientcontext_set_datasource(client, ds) ||
       ds == NULL)
     return -2;
-  return 17; /* FIXME */
+  r = datasource_get_1st_read_size(ds);
+  return (r<0? -2 : r);
 }
 
 static int32_t handle_packet(void *ctx, clientcontext client, const int32_t *pkt, int cnt)
