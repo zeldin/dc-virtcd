@@ -68,7 +68,7 @@ static int32_t select_binary(server s, clientcontext client, uint32_t id)
   return (r<0? -2 : r);
 }
 
-static int32_t handle_packet(void *ctx, clientcontext client, const int32_t *pkt, int cnt)
+static int32_t handle_packet(void *ctx, clientcontext client, const int32_t *pkt, int cnt, struct extra_response *extra)
 {
   server s = ctx;
   int i;

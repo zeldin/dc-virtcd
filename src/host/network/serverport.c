@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
@@ -20,6 +21,7 @@
 #define SERVER_PORT 4782
 
 #define MAX_PKT 8
+#define MAX_EXTRA 1280  /* Should be less than MTU-28 */
 
 #ifdef HAVE_DECL___BUILTIN_BSWAP32
 #define SWAP32 __builtin_bswap32
@@ -43,6 +45,12 @@ struct serverport_s {
   void *ctx;
   int sockfd;
   level1_index clients;
+  uint8_t extra_buffer[MAX_EXTRA];
+};
+
+struct extra_response {
+  void *buffer;
+  size_t size;
 };
 
 static void clientcontext_delete(serverport s, clientcontext c)
@@ -181,6 +189,24 @@ void serverport_delete(serverport s)
   }
 }
 
+bool serverport_add_extra(serverport s, struct extra_response *extra, void *data, size_t len)
+{
+  if (!len)
+    return true;
+  size_t old = extra->size;
+  if (!old)
+    old = 3*sizeof(int32_t);
+  if (len > MAX_EXTRA - old) {
+    msglog_error(s->logger, "Overfull extra");
+    return false;
+  }
+  if (extra->buffer == NULL)
+    extra->buffer = s->extra_buffer;
+  memcpy(((uint8_t *)extra->buffer) + old, data, len);
+  extra->size = old+len;
+  return true;
+}
+
 void serverport_run_once(serverport s)
 {
   ssize_t size;
@@ -209,15 +235,21 @@ void serverport_run_once(serverport s)
   for (i=2; i<size; i++)
     pkt[i] = SWAP32(pkt[i]);
 #endif
-  rc = (*s->funcs->handle_packet)(s->ctx, c, pkt+2, size-2);
+  struct extra_response extra = { NULL, 0 };
+  rc = (*s->funcs->handle_packet)(s->ctx, c, pkt+2, size-2, &extra);
   if (rc != -1) {
 #ifdef WORDS_BIGENDIAN
     pkt[2] = SWAP32(rc);
 #else
     pkt[2] = rc;
 #endif
-    size = sendto(s->sockfd, pkt, 3*sizeof(int32_t), 0,
-		  (struct sockaddr *)&src_addr, addrlen);
+    if (extra.buffer) {
+      memcpy(extra.buffer, pkt, 3*sizeof(int32_t));
+      size = sendto(s->sockfd, extra.buffer, extra.size, 0,
+		    (struct sockaddr *)&src_addr, addrlen);
+    } else
+      size = sendto(s->sockfd, pkt, 3*sizeof(int32_t), 0,
+		    (struct sockaddr *)&src_addr, addrlen);
     if (size<0)
       msglog_perror(s->logger, "sendto");
   }
