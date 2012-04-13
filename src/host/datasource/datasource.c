@@ -32,6 +32,7 @@ struct realization_s {
   bool (*get_toc)(realization r, int session, dc_toc *toc);
   bool (*get_ipbin)(realization r, uint32_t n, uint8_t *buffer);
   int32_t (*get_1st_read_size)(realization r);
+  bool (*get_1st_read)(realization r, uint32_t n, uint8_t *buffer);
 };
 
 static bool realization_read_sector_from_isofile(realization r,
@@ -56,6 +57,12 @@ static bool realization_get_ipbin_from_datasource(realization r,
 static int32_t realization_get_1st_read_size_generic(realization r)
 {
   return r->bootfile_length;
+}
+
+static bool realization_get_1st_read_from_datasource(realization r,
+						     uint32_t n, uint8_t *buffer)
+{
+  return r->read_sector(r, r->bootfile_sector+n, buffer);
 }
 
 static void realization_delete(realization r)
@@ -94,6 +101,7 @@ static bool realization_setup_fs(realization r, datasource ds, isofs fs)
     return false;
   }
   r->get_1st_read_size = realization_get_1st_read_size_generic;
+  r->get_1st_read = realization_get_1st_read_from_datasource;
   msglog_debug(r->logger, "Found file at LBA %lu, size is %lu bytes",
 	       (unsigned long)r->bootfile_sector,
 	       (unsigned long)r->bootfile_length);
@@ -134,6 +142,7 @@ static realization realization_new(msglogger logger)
     r->get_toc = NULL;
     r->get_ipbin = NULL;
     r->get_1st_read_size = NULL;
+    r->get_1st_read = NULL;
     return r;
   } else
     msglog_oomerror(logger);
@@ -206,6 +215,16 @@ extern int32_t datasource_get_1st_read_size(datasource ds)
   else {
     msglog_error(ds->logger, "Get 1ST_READ.BIN size on unrealized datasource");
     return -1;
+  }
+}
+
+extern bool datasource_get_1st_read(datasource ds, uint32_t n, uint8_t *buffer)
+{
+  if (ds->realization)
+    return ds->realization->get_1st_read(ds->realization, n, buffer);
+  else {
+    msglog_error(ds->logger, "Get 1ST_READ.BIN on unrealized datasource");
+    return false;
   }
 }
 

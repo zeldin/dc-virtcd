@@ -13,4 +13,4 @@ extern serverport serverport_new(msglogger logger, serverfuncs funcs, void *ctx)
 extern void serverport_delete(serverport s);
 extern void serverport_run_once(serverport s);
 extern void serverport_run(serverport s);
-extern bool serverport_add_extra(serverport s, struct extra_response *extra, void *data, size_t len);
+extern bool serverport_add_extra(serverport s, struct extra_response *extra, const void *data, size_t len);

@@ -189,7 +189,7 @@ void serverport_delete(serverport s)
   }
 }
 
-bool serverport_add_extra(serverport s, struct extra_response *extra, void *data, size_t len)
+bool serverport_add_extra(serverport s, struct extra_response *extra, const void *data, size_t len)
 {
   if (!len)
     return true;

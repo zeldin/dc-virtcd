@@ -12,6 +12,10 @@
 #include "server.h"
 #include "serverport.h"
 
+#define DOWNLOAD_AREA_START 0x8c008000
+#define DOWNLOAD_AREA_END   0x8cf10000
+#define DOWNLOAD_MAIN_START 0x8c010000
+
 struct clientcontext_s {
   struct clientcontext_base_s base;
   datasource dsource;
@@ -57,6 +61,19 @@ static bool clientcontext_set_datasource(clientcontext client, datasource ds)
   return true;
 }
 
+static bool write_data(server s, struct extra_response *extra,
+		       const void *data, size_t len, uint32_t addr)
+{
+  uint8_t header[6] = {
+    (len>>8)|0xd0, len&0xff,
+    addr&0xff, (addr>>8)&0xff, (addr>>16)&0xff, addr>>24
+  };
+  if (!len)
+    return true;
+  return serverport_add_extra(s->port, extra, header, 6) &&
+    serverport_add_extra(s->port, extra, data, len);
+}
+
 static int32_t select_binary(server s, clientcontext client, uint32_t id)
 {
   int32_t r;
@@ -66,6 +83,59 @@ static int32_t select_binary(server s, clientcontext client, uint32_t id)
     return -2;
   r = datasource_get_1st_read_size(ds);
   return (r<0? -2 : r);
+}
+
+static int32_t low_download(server s, clientcontext client,
+			    struct extra_response *extra,
+			    uint32_t addr, uint32_t cnt)
+{
+  uint8_t buf[2048];
+  if (addr < DOWNLOAD_MAIN_START) {
+    uint32_t offs = addr & 0x7fff;
+    if (!datasource_get_ipbin(client->dsource, offs>>11, buf) ||
+	!write_data(s, extra, buf+(offs&2047), cnt, addr))
+      return -4;
+    else
+      return 0;
+  } else {
+    uint32_t offs = addr - DOWNLOAD_MAIN_START;
+    int32_t len = datasource_get_1st_read_size(client->dsource);
+    if (len < 0 || offs + cnt > (uint32_t)len) {
+      msglog_error(s->logger, "Download after end of binary...");
+      return -3;
+    }
+    if (!datasource_get_1st_read(client->dsource, offs>>11, buf) ||
+	!write_data(s, extra, buf+(offs&2047), cnt, addr))
+      return -4;
+    else
+      return 0;
+  }
+}
+
+static int32_t download(server s, clientcontext client,
+			struct extra_response *extra,
+			uint32_t addr, uint32_t cnt)
+{
+  if (client->dsource == NULL) {
+    msglog_error(s->logger, "Download request without a datasource");
+    return -2;
+  }
+  if (addr < DOWNLOAD_AREA_START || addr > DOWNLOAD_AREA_END ||
+      cnt > DOWNLOAD_AREA_END - addr) {
+    msglog_error(s->logger, "Download request outside allowed area");
+    return -2;
+  }
+  if (!cnt)
+    return 0;
+  while (((addr + cnt - 1)&~2047) != (addr&~2047)) {
+    uint32_t chunk = (addr|2047)+1-addr;
+    int32_t r = low_download(s, client, extra, addr, chunk);
+    if (r)
+      return r;
+    addr += chunk;
+    cnt -= chunk;
+  }
+  return low_download(s, client, extra, addr, cnt);
 }
 
 static int32_t handle_packet(void *ctx, clientcontext client, const int32_t *pkt, int cnt, struct extra_response *extra)
@@ -90,7 +160,9 @@ static int32_t handle_packet(void *ctx, clientcontext client, const int32_t *pkt
       case 1:
 	return 0;
       case 7:
-	/* FIXME */
+	return download(s, client, extra,
+			(cnt > 1? (uint32_t)pkt[1] : 0),
+			(cnt > 2? (uint32_t)pkt[2] : 0));
 	break;
       case 8:
 	return select_binary(s, client, (cnt > 1? (uint32_t)pkt[1] : 0));
