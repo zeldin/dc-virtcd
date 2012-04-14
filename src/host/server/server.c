@@ -11,6 +11,7 @@
 #include "jukebox.h"
 #include "server.h"
 #include "serverport.h"
+#include "bswap.h"
 
 #define DOWNLOAD_AREA_START 0x8c008000
 #define DOWNLOAD_AREA_END   0x8cf10000
@@ -59,6 +60,17 @@ static bool clientcontext_set_datasource(clientcontext client, datasource ds)
     return false;
   client->dsource = ds;
   return true;
+}
+
+static int32_t gderror(server s, struct extra_response *extra, int32_t e)
+{
+  uint8_t err[] = { 1, e&0xff, (e>>8)&0xff, (e>>16)&0xff, (e>>24)&0xff,
+		    0, 0, 0, 0,
+		    0, 0, 0, 0,
+		    0, 0, 0, 0 };
+  if(!serverport_add_extra(s->port, extra, err, 17))
+    return -4;
+  return -2;
 }
 
 static bool write_data(server s, struct extra_response *extra,
@@ -138,6 +150,58 @@ static int32_t download(server s, clientcontext client,
   return low_download(s, client, extra, addr, cnt);
 }
 
+static int32_t read_data(server s, clientcontext client,
+			 struct extra_response *extra, uint16_t phase,
+			 uint32_t sec, int32_t cnt, uint32_t addr)
+{
+  uint8_t buf[2048];
+  if (client->dsource == NULL) {
+    msglog_error(s->logger, "Read request without a datasource");
+    return -2;
+  }
+  if (cnt <= 0)
+    return gderror(s, extra, 15);
+  sec += phase>>1;
+  if (!datasource_read_sector(client->dsource, sec, buf))
+    return gderror(s, extra, 15);
+  if (!write_data(s, extra, ((phase&1)? buf+1024 : buf), 1024,
+		  addr+(phase<<10)))
+    return -4;
+
+  if(++phase == (cnt<<1))
+    return 0;
+  else
+    return phase<<16;
+}
+
+static int32_t read_toc(server s, clientcontext client,
+			struct extra_response *extra,
+			int session, uint32_t addr)
+{
+  dc_toc toc;
+  if (client->dsource == NULL) {
+    msglog_error(s->logger, "TOC request without a datasource");
+    return -2;
+  }
+  if (!datasource_get_toc(client->dsource, session, &toc))
+    return gderror(s, extra, 15);
+#ifdef WORDS_BIGENDIAN
+  int i;
+  for(i=0; i<102; i++)
+    toc.entry[i] = SWAP32(toc.entry[i]);
+#endif
+  if (!write_data(s, extra, &toc, sizeof(toc), addr))
+    return -4;
+  return 0;
+}
+
+static int32_t get_driver_version(server s, struct extra_response *extra,
+				  uint32_t addr)
+{
+  return (write_data(s, extra, "GDC Version 1.10 1999-03-31\2", 28, addr)?
+	  0 : -4);
+}
+
 static int32_t handle_packet(void *ctx, clientcontext client, const int32_t *pkt, int cnt, struct extra_response *extra)
 {
   server s = ctx;
@@ -151,7 +215,26 @@ static int32_t handle_packet(void *ctx, clientcontext client, const int32_t *pkt
     if (cmd < 48) {
       /* gdrom command */
       switch(cmd) {
-	/* FIXME */
+      case 16: /* cpu read */
+      case 17: /* dma read */
+	return read_data(s, client, extra, (uint16_t)(pkt[0]>>16),
+			 (cnt > 1? (uint32_t)pkt[1] : 0),
+			 (cnt > 2? pkt[2] : 0),
+			 (cnt > 3? (uint32_t)pkt[3] : 0));
+
+      case 19: /* read toc */
+	return read_toc(s, client, extra,
+			(cnt > 1? (uint32_t)pkt[1] : 0),
+			(cnt > 2? (uint32_t)pkt[2] : 0));
+
+      case 24: /* init drive */
+	return 0;
+
+      case 40: /* get driver version */
+	return get_driver_version(s, extra, (cnt > 1? (uint32_t)pkt[1] : 0));
+
+      default:
+	return gderror(s, extra, 32);
       }
     } else if(cmd >= 990) {
       /* monitor command */

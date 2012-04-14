@@ -20,6 +20,6 @@ clean :
 $(LIBTARGET) : $(OBJS)
 	$(AR) rc $@ $(OBJS)
 
-server.o : server.c server.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h $(top_srcdir)/network/serverport.h $(top_srcdir)/datasource/datasource.h $(top_srcdir)/datasource/jukebox.h
+server.o : server.c server.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h $(top_srcdir)/common/bswap.h $(top_srcdir)/network/serverport.h $(top_srcdir)/datasource/datasource.h $(top_srcdir)/datasource/jukebox.h
 
 
