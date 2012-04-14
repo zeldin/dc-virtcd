@@ -10,29 +10,15 @@
 #include <string.h>
 #include <stdbool.h>
 
-#ifdef HAVE_BYTESWAP_H
-#include <byteswap.h>
-#endif
-
 #include "msglog.h"
 #include "serverport.h"
+#include "bswap.h"
 
 #define CLIENT_PORT 4781
 #define SERVER_PORT 4782
 
 #define MAX_PKT 8
 #define MAX_EXTRA 1280  /* Should be less than MTU-28 */
-
-#ifdef HAVE_DECL___BUILTIN_BSWAP32
-#define SWAP32 __builtin_bswap32
-#else
-#ifdef HAVE_DECL_BSWAP_32
-#define SWAP32 bswap_32
-#else
-#define SWAP16(n) (((uint16_t)((n)<<8))|(((uint16_t)(n))>>8))
-#define SWAP32(n) ((SWAP16((uint32_t)(n))<<16)|SWAP16(((uint32_t)(n))>>16))
-#endif
-#endif
 
 typedef clientcontext level4_index[256];
 typedef level4_index *level3_index[256];
