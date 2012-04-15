@@ -90,6 +90,7 @@ isofile isofile_new(msglogger logger, datafile data)
       return i;
     } else
       msglog_error(logger, "Unable to determine the start sector for ISO");
+    isofile_delete(i);
   } else
     msglog_oomerror(logger);
   return NULL;
