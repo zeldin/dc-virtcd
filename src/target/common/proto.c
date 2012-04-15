@@ -125,11 +125,13 @@ void background_process()
       if(--resend_count[i]) {
 	udp_send_packet(target_hw, target_ip, CLIENT_PORT, SERVER_PORT,
 			slots[i], pkt_size[i]);
-	resend_time[i] = RESEND_TIME;
+	resend_time[i] = RESEND_TIME * (RESEND_COUNT - resend_count[i]);
 	num_resends++;
       } else {
-	slots[i][0] = -1;
+	bzero(&slots[i][3], 16);
+	slots[i][3] = 99;
 	slots[i][2] = -1;
+	slots[i][0] = -1;
       }
     }
 }
