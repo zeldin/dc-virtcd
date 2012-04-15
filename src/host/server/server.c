@@ -206,9 +206,6 @@ static int32_t handle_packet(void *ctx, clientcontext client, const int32_t *pkt
 {
   server s = ctx;
   int i;
-  for (i=0; i<cnt; i++)
-    printf(" %d", pkt[i]);
-  printf("\n");
 
   if (cnt > 0) {
     uint16_t cmd = (uint16_t)pkt[0];
