@@ -13,3 +13,16 @@ Requirements
 * Broadband adapter
 * A computer to run the host side of the application on
 * A network cable
+
+Features
+--------
+
+* Works with any software using Gdc system calls to read the disc
+* Supports ISO and NRG images
+
+Misfeatures
+-----------
+
+* No support for CD-DA
+* Does not work with e.g. NetBSD, which accesses the GD-ROM drive directly
+
