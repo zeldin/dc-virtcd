@@ -102,7 +102,7 @@ static bool nrgfile_read_daox(nrgfile n, uint32_t offs, uint32_t sz)
     memcpy(trkdata, trk+10, sizeof(trkdata));
 #ifndef WORDS_BIGENDIAN
     for (j=0; i<8; j++)
-      trkdata[i] = SWAP32(trkdata[i]x);
+      trkdata[i] = SWAP32(trkdata[i]);
 #endif
     if (trkdata[2] || trkdata[4] || trkdata[6]) {
       /* We only handle 32-bit offsets */
