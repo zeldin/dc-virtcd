@@ -66,10 +66,17 @@ bool isofile_read_sector(isofile i, uint32_t sector, uint8_t *buffer)
 bool isofile_get_toc(isofile i, int session, dc_toc *toc)
 {
   memset(toc, 0, sizeof(*toc));
-  toc->entry[0] = MAKE_DC_TOC_ENTRY(150, 0, 0);
-  toc->entry[1] = MAKE_DC_TOC_ENTRY(i->start_sector, 0, 4);
+  if (i->start_sector > 150) {
+    toc->entry[0] = MAKE_DC_TOC_ENTRY(150, 1, 0);
+    toc->entry[1] = MAKE_DC_TOC_ENTRY(i->start_sector, 1, 4);
+    toc->last = MAKE_DC_TOC_TRACK(2);
+  } else {
+    toc->entry[0] = MAKE_DC_TOC_ENTRY(i->start_sector, 1, 4);
+    toc->last = MAKE_DC_TOC_TRACK(1);
+  }
+  toc->dunno = MAKE_DC_TOC_ENTRY(i->start_sector+i->num_sectors, 1, 4);
   toc->first = MAKE_DC_TOC_TRACK(1);
-  toc->last = MAKE_DC_TOC_TRACK(2);
+  return true;
 }
 
 void isofile_delete(isofile i)
