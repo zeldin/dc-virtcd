@@ -41,6 +41,7 @@ struct datasource_s {
   realization realization;
   unsigned realize_count;
   char *filename;
+  scramblingmode scrammode;
 };
 
 struct realization_s {
@@ -52,6 +53,7 @@ struct realization_s {
   descrambler dscram;
   uint32_t bootsector0;
   uint32_t bootfile_sector, bootfile_length;
+  char devinfo[8];
   bool (*read_sector)(realization r, uint32_t sector, uint8_t *buffer);
   bool (*get_toc)(realization r, int session, dc_toc *toc);
   bool (*get_ipbin)(realization r, uint32_t n, uint8_t *buffer);
@@ -321,6 +323,9 @@ static bool realization_setup_fs(realization r, datasource ds, isofs fs)
     return false;
   }
   r->get_ipbin = realization_get_ipbin_from_datasource;
+  memcpy(r->devinfo, ip0000+0x25, 6);
+  r->devinfo[6] = 0;
+  msglog_debug(r->logger, "Device info: \"%s\"", r->devinfo);
   memcpy(bootname, ip0000+0x60, 16);
   for(namelen=16; namelen>0; --namelen)
     if(bootname[namelen-1] != ' ')
@@ -340,12 +345,30 @@ static bool realization_setup_fs(realization r, datasource ds, isofs fs)
   return true;
 }
 
-static bool realization_setup_descrambling(realization r)
+static bool realization_setup_descrambling(realization r, datasource ds)
 {
-  /* FIXME */
-  if (false)
+  switch(ds->scrammode) {
+  case SCRAMBLING_ENABLED:
+    break;
+
+  case SCRAMBLING_DISABLED:
     /* No descrambling needed */
     return true;
+
+  case SCRAMBLING_AUTODETECT:
+    if (!strcmp(r->devinfo, "CD-ROM")) {
+      msglog_info(r->logger, "CD-ROM (MIL-CD) detected, assuming scrambled");
+      break;
+    } else if (!strcmp(r->devinfo, "GD-ROM")) {
+      msglog_info(r->logger, "GD-ROM detected, assuming not scrambled");
+      /* No descrambling needed */
+      return true;
+    } else {
+      msglog_warning(r->logger, "Device information \"%s\" unknown, "
+		     "assuming scrambled", r->devinfo);
+      break;
+    }
+  }
 
   if ((r->dscram = descrambler_new(r->logger)) == NULL) {
       msglog_oomerror(r->logger);
@@ -407,7 +430,7 @@ static bool realization_setup_disc(realization r, datasource ds)
       msglog_error(r->logger, "Main binary is too lage (>16MiB)");
       result = false;
     } else
-      result = realization_setup_descrambling(r);
+      result = realization_setup_descrambling(r, ds);
 
   return result;
 }
@@ -534,6 +557,7 @@ datasource datasource_new_from_filename(msglogger logger, const char *filename)
   if (ds) {
     ds->logger = logger;
     ds->realization = NULL;
+    ds->scrammode = SCRAMBLING_AUTODETECT;
     if ((ds->filename = strdup(filename)) != NULL)
       return ds;
     else

@@ -1,4 +1,9 @@
 typedef struct datasource_s *datasource;
+typedef enum {
+  SCRAMBLING_ENABLED,
+  SCRAMBLING_DISABLED,
+  SCRAMBLING_AUTODETECT,
+} scramblingmode;
 extern void datasource_delete(datasource ds);
 extern datasource datasource_new_from_filename(msglogger logger, const char *filename);
 extern bool datasource_realize(datasource ds);
