@@ -210,8 +210,10 @@ void serverport_run_once(serverport s)
     return;
   }
   size /= sizeof(int32_t);
+#ifdef SERVERPORT_PACKET_TRACE
   msglog_debug(s->logger, "Got a message from %s:%d, %d values",
 	       inet_ntoa(src_addr.sin_addr), ntohs(src_addr.sin_port), size);
+#endif
   clientcontext c = serverport_get_clientcontext_for_address(s, src_addr.sin_addr);
   if (c == NULL)
     return;
