@@ -8,7 +8,9 @@
 #include <ctype.h>
 
 #include <sys/types.h>
+#ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
+#endif
 #include <unistd.h>
 #include <dirent.h>
 
@@ -54,6 +56,26 @@ struct directory_s {
 static void dirnode_delete(dirnode dn);
 static dirnode dirnode_new(directory d, const char *path);
 
+#ifdef HAVE_STAT
+static bool stat_file(msglogger logger, const char *path,
+		      uint32_t *size, bool *isdir)
+{
+  struct stat buf;
+  if (stat(path, &buf)>=0) {
+    if (size != NULL)
+      *size = buf.st_size;
+    if (isdir != NULL)
+      *isdir = S_ISDIR(buf.st_mode);
+    return true;
+  } else {
+    msglog_perror(logger, path);
+    return false;
+  }
+}
+#else
+#error stat() not available, please provide a fallback implementation...
+#endif
+
 static void direntry_delete(direntry de)
 {
   if (de) {
@@ -91,19 +113,19 @@ static direntry direntry_new(directory d, const char *base_path,
   msglogger logger = d->logger;
   direntry de = calloc(1, sizeof(struct direntry_s));
   if (de) {
-    struct stat buf;
+    uint32_t f_size;
+    bool f_isdir;
     de->next = NULL;
     de->node.read_sector = direntry_read_sector;
     if ((de->path = malloc(strlen(base_path)+strlen(dire->d_name)+4))) {
       sprintf(de->path, "%s/%s", base_path, dire->d_name);
-      if (stat(de->path, &buf)>=0) {
-	de->size = buf.st_size;
-	de->node.num_sectors = (buf.st_size + 2047)>>11;
-	if (!S_ISDIR(buf.st_mode) ||
+      if (stat_file(logger, de->path, &f_size, &f_isdir)>=0) {
+	de->size = f_size;
+	de->node.num_sectors = (f_size + 2047)>>11;
+	if (!f_isdir ||
 	    (de->dirnode = dirnode_new(d, de->path)))
 	  return de;
-      } else
-	msglog_perror(logger, de->path);
+      }
     } else
       msglog_oomerror(logger);
     direntry_delete(de);
@@ -375,12 +397,10 @@ directory directory_new(msglogger logger, const char *dirname)
 
 bool directory_check(msglogger logger, const char *dirname)
 {
-  struct stat buf;
-  if (stat(dirname, &buf)<0) {
-    msglog_perror(logger, dirname);
+  bool f_isdir;
+  if (!stat_file(logger, dirname, NULL, &f_isdir))
     return false;
-  }
-  return S_ISDIR(buf.st_mode);
+  return f_isdir;
 }
 
 static bool directory_create_pvd(directory d, uint8_t *buffer)
