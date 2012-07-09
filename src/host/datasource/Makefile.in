@@ -7,7 +7,7 @@ top_builddir=@top_builddir@
 srcdir=@srcdir@
 VPATH=@srcdir@
 
-OBJS = datafile.o isofile.o nrgfile.o isofsparser.o datasource.o jukebox.o
+OBJS = datafile.o isofile.o nrgfile.o directory.o isofsparser.o datasource.o jukebox.o
 
 LIBTARGET = libdatasource.a
 
@@ -25,8 +25,10 @@ isofile.o : isofile.c isofile.h datafile.h $(top_builddir)/config.h $(top_srcdir
 
 nrgfile.o : nrgfile.c nrgfile.h datafile.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h $(top_srcdir)/common/bswap.h
 
+directory.o : directory.c directory.h datafile.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h
+
 isofsparser.o : isofsparser.c isofsparser.h isofile.h datafile.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h
 
-datasource.o : datasource.c datasource.h isofsparser.h isofile.h nrgfile.h datafile.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h
+datasource.o : datasource.c datasource.h isofsparser.h isofile.h nrgfile.h directory.h datafile.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h
 
 jukebox.o : jukebox.c jukebox.h datasource.h $(top_builddir)/config.h $(top_srcdir)/common/msglog.h $(top_srcdir)/common/toc.h

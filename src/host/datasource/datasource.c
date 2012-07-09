@@ -11,6 +11,7 @@
 #include "datafile.h"
 #include "isofile.h"
 #include "nrgfile.h"
+#include "directory.h"
 #include "datasource.h"
 #include "isofsparser.h"
 
@@ -47,6 +48,7 @@ struct realization_s {
   datafile data;
   isofile iso;
   nrgfile nrg;
+  directory dir;
   descrambler dscram;
   uint32_t bootsector0;
   uint32_t bootfile_sector, bootfile_length;
@@ -109,6 +111,19 @@ static bool realization_get_toc_from_nrgfile(realization r, int session,
   return nrgfile_get_toc(r->nrg, session, toc);
 }
 
+static bool realization_read_sector_from_directory(realization r,
+						   uint32_t sector,
+						   uint8_t *buffer)
+{
+  return directory_read_sector(r->dir, sector, buffer);
+}
+
+static bool realization_get_toc_from_directory(realization r, int session,
+					       dc_toc *toc)
+{
+  return directory_get_toc(r->dir, session, toc);
+}
+
 static bool realization_get_ipbin_from_datasource(realization r,
 						  uint32_t n, uint8_t *buffer)
 {
@@ -135,6 +150,8 @@ static void realization_delete(realization r)
       isofile_delete(r->iso);
     if (r->nrg)
       nrgfile_delete(r->nrg);
+    if (r->dir)
+      directory_delete(r->dir);
     if (r->data)
       datafile_delete(r->data);
     free(r);
@@ -346,24 +363,36 @@ static bool realization_setup_disc(realization r, datasource ds)
   isofs fs;
   bool result = false;
 
-  if ((r->data = datafile_new_from_filename(r->logger, ds->filename)) == NULL)
-    return false;
+  if (directory_check(r->logger, ds->filename)) {
 
-  if (nrgfile_check(r->logger, r->data)) {
+      if ((r->dir = directory_new(r->logger, ds->filename)) == NULL)
+	return false;
 
-    if ((r->nrg = nrgfile_new(r->logger, r->data)) == NULL)
-      return false;
-
-    r->read_sector = realization_read_sector_from_nrgfile;
-    r->get_toc = realization_get_toc_from_nrgfile;
+      r->read_sector = realization_read_sector_from_directory;
+      r->get_toc = realization_get_toc_from_directory;
 
   } else {
 
-    if ((r->iso = isofile_new(r->logger, r->data)) == NULL)
+    if ((r->data = datafile_new_from_filename(r->logger, ds->filename)) == NULL)
       return false;
 
-    r->read_sector = realization_read_sector_from_isofile;
-    r->get_toc = realization_get_toc_from_isofile;
+    if (nrgfile_check(r->logger, r->data)) {
+
+      if ((r->nrg = nrgfile_new(r->logger, r->data)) == NULL)
+	return false;
+
+      r->read_sector = realization_read_sector_from_nrgfile;
+      r->get_toc = realization_get_toc_from_nrgfile;
+
+    } else {
+
+      if ((r->iso = isofile_new(r->logger, r->data)) == NULL)
+	return false;
+
+      r->read_sector = realization_read_sector_from_isofile;
+      r->get_toc = realization_get_toc_from_isofile;
+
+    }
 
   }
 
@@ -391,6 +420,7 @@ static realization realization_new(msglogger logger)
     r->data = NULL;
     r->iso = NULL;
     r->nrg = NULL;
+    r->dir = NULL;
     r->dscram = NULL;
     r->read_sector = NULL;
     r->get_toc = NULL;
