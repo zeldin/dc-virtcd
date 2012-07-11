@@ -168,9 +168,16 @@ static int32_t read_data(server s, clientcontext client,
 		  addr+(phase<<10)))
     return -4;
 
-  if(++phase == (cnt<<1))
+  if(++phase == (cnt<<1)) {
+    uint32_t sz = cnt<<11;
+    uint8_t err[] = { 1, 0, 0, 0, 0,
+		      0, 0, 0, 0,
+		      sz&0xff, (sz>>8)&0xff, (sz>>16)&0xff, (sz>>24)&0xff,
+		      0, 0, 0, 0 };
+    if(!serverport_add_extra(s->port, extra, err, 17))
+      return -4;
     return 0;
-  else
+  } else
     return phase<<16;
 }
 
