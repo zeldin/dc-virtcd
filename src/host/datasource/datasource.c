@@ -359,6 +359,9 @@ static bool realization_setup_descrambling(realization r, datasource ds)
     if (!strcmp(r->devinfo, "CD-ROM")) {
       msglog_info(r->logger, "CD-ROM (MIL-CD) detected, assuming scrambled");
       break;
+    } else if (!strcmp(r->devinfo, "MIL CD")) {
+      msglog_info(r->logger, "MIL-CD detected, assuming scrambled");
+      break;
     } else if (!strcmp(r->devinfo, "GD-ROM")) {
       msglog_info(r->logger, "GD-ROM detected, assuming not scrambled");
       /* No descrambling needed */
